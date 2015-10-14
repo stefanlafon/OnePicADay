@@ -5,6 +5,4 @@ option java_package = "com.soleilcode.onepicaday";
 message Photo {
   // Unix timestamp of the photo creation.
   optional int64 creation_time_millis = 1;
-
-  // Metadata, including alignment data.
 }
