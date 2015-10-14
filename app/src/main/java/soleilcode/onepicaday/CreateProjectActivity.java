@@ -14,7 +14,7 @@ public class CreateProjectActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_create_project);
 
-        // Set up Button Click listeners.
+        // Clicking on this button creates the project.
         Button startProjectButton = (Button) findViewById(R.id.start);
         startProjectButton.setOnClickListener(new View.OnClickListener() {
             @Override
