@@ -17,6 +17,7 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
 
         // Set up Button Click listeners.
+        // Button for creating a new project.
         Button newProjectButton = (Button) findViewById(R.id.new_project);
         newProjectButton.setOnClickListener(new View.OnClickListener() {
             @Override
