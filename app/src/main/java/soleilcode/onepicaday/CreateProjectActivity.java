@@ -20,7 +20,8 @@ public class CreateProjectActivity extends ActionBarActivity {
             @Override
             public void onClick(View v) {
                 if (validateProjectInfo()) {
-                    // startActivity(...);
+                    // TODO: Save project.
+                    startActivity(new Intent(CreateProjectActivity.this, CameraActivity.class));
                 }
             }
         });
@@ -33,7 +34,10 @@ public class CreateProjectActivity extends ActionBarActivity {
      */
     private boolean validateProjectInfo() {
         // Project name must be non-empty.
-        String name = ((EditText) findViewById(R.id.name)).getText().toString();
-        return !name.isEmpty();
+        return !getName().isEmpty();
+    }
+
+    private String getName() {
+        return ((EditText) findViewById(R.id.name)).getText().toString();
     }
 }
