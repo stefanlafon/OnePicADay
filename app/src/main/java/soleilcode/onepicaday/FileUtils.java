@@ -16,6 +16,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Utilities for file I/O.
@@ -23,8 +25,9 @@ import java.io.IOException;
 public class FileUtils {
 
     private static final String TAG = "FileUtils";
+    private static final String DIR_NAME = "OnePicADayDir";
+    private static final String EXTENSION = ".project";
 
-    private static final String DIR_NAME = "OnePicADay";
     private static final FileUtils sInstance = new FileUtils();
 
     public static FileUtils getInstance() {
@@ -33,10 +36,27 @@ public class FileUtils {
 
     private FileUtils() {}
 
+    /** Returns the list of all project files. */
+    public List<File> getProjectFiles() {
+        File root = getFile("", true);
+        List<File> projectFiles = new ArrayList<File>();
+        if (root != null) {
+            File[] files = root.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (!file.isDirectory() && file.getName().endsWith(EXTENSION)) {
+                        projectFiles.add(file);
+                    }
+                }
+            }
+        }
+        return projectFiles;
+    }
+
     /** Loads a project. */
     @Nullable
     public Project loadProject(String projectName) {
-        File file = getFile(getInfoPath() + getProjectFileName(projectName), false);
+        File file = getFile(getProjectFileName(projectName), false);
         if (file == null){
             Log.e(TAG, "Error loading project file");
             return null;
@@ -56,7 +76,7 @@ public class FileUtils {
 
     /** Saves a project. */
     public void saveProject(Project project) {
-        File file = getFile(getInfoPath() + getProjectFileName(project.name), true);
+        File file = getFile(getProjectFileName(project.name), true);
         if (file == null){
             Log.e(TAG, "Error creating project file");
             return;
@@ -121,16 +141,11 @@ public class FileUtils {
     }
 
     private String getProjectFileName(String projectName) {
-        return projectName + ".project";
-    }
-
-    /** Returns the directory path to the project metadata. */
-    private String getInfoPath() {
-        return DIR_NAME;
+        return projectName + EXTENSION;
     }
 
     /** Returns the directory path to the image files for a given project. */
     private String getProjectImagePath(String projectName) {
-        return DIR_NAME + "/" + projectName + "/";
+        return projectName + File.separator;
     }
 }
