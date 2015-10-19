@@ -7,15 +7,21 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ListView;
+import android.widget.Toast;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends ActionBarActivity {
 
     private static final String TAG = "MainActivity";
 
+    private ArrayAdapter<String> mProjectsAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,8 +38,7 @@ public class MainActivity extends ActionBarActivity {
             }
         });
 
-        // TODO: Remove this.
-        LogProjectFiles();
+        populateProjectList();
     }
 
     @Override
@@ -58,11 +63,28 @@ public class MainActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void LogProjectFiles() {
+    private void populateProjectList() {
+
         List<File> projectFiles = FileUtils.getInstance().getProjectFiles();
-        Log.e(TAG, "Number of projects: " + projectFiles.size());
+        List<String> projectFileNames = new ArrayList<String>();
         for (File file : projectFiles) {
-            Log.e(TAG, "Project " + file.getName());
+            projectFileNames.add(file.getName());
         }
+        mProjectsAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1,
+                        projectFileNames);
+
+        ListView listView = (ListView) findViewById(R.id.project_list);
+        listView.setAdapter(mProjectsAdapter);
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view,
+                                    int position, long id) {
+                Toast.makeText(getApplicationContext(),
+                        "Click ListItem Number " + mProjectsAdapter.getItem(position), Toast.LENGTH_SHORT)
+                        .show();
+            }
+        });
+
     }
 }
