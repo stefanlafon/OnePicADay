@@ -21,6 +21,8 @@ import java.util.List;
 
 /**
  * Utilities for file I/O.
+ *
+ * // TODO: Do not rely on project name to create the file name. Instead we should be using hashes.
  */
 public class FileUtils {
 
@@ -35,6 +37,19 @@ public class FileUtils {
     }
 
     private FileUtils() {}
+
+    public String getProjectFileName(String projectName) {
+        return projectName + EXTENSION;
+    }
+
+    /** Returns the project name from the file name or null if an error occurred. */
+    @Nullable
+    public String getProjectName(String projectFileName) {
+        if (!projectFileName.endsWith(EXTENSION)) {
+            return null;
+        }
+        return projectFileName.substring(0,projectFileName.length() - EXTENSION.length());
+    }
 
     /** Returns the list of all project files. */
     public List<File> getProjectFiles() {
@@ -53,15 +68,21 @@ public class FileUtils {
         return projectFiles;
     }
 
-    /** Loads a project. */
+    /** Loads a project's {@link Project} proto in serialized form. */
     @Nullable
-    public Project loadProject(String projectName) {
+    public byte[] loadProjectBytes(String projectName) {
         File file = getFile(getProjectFileName(projectName), false);
         if (file == null){
             Log.e(TAG, "Error loading project file");
             return null;
         }
-        byte[] bytes = loadBytes(file);
+        return loadBytes(file);
+    }
+
+    /** Same as {@link #loadProjectBytes(String)}, but also deserializes the proto. */
+    @Nullable
+    public Project loadProject(String projectName) {
+        byte[] bytes = loadProjectBytes(projectName);
         if (bytes == null) {
             return null;
         }
@@ -138,10 +159,6 @@ public class FileUtils {
         }
 
         return new File(mediaStorageDir.getPath() + File.separator + filename);
-    }
-
-    private String getProjectFileName(String projectName) {
-        return projectName + EXTENSION;
     }
 
     /** Returns the directory path to the image files for a given project. */

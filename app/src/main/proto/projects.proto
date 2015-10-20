@@ -8,7 +8,7 @@ message Project {
   // Unix timestamp of the project creation.
   optional int64 creation_time_millis = 1;
 
-  // Name of the project.
+  // Name of the project. Unique id for the project.
   optional string name = 2;
 
   // The list of photos for this project, in increasing order of creation timestamp.

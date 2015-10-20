@@ -13,6 +13,8 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import com.soleilcode.onepicaday.Projects;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +23,7 @@ public class MainActivity extends ActionBarActivity {
 
     private static final String TAG = "MainActivity";
 
+    private final FileUtils mfileutFileUtils = FileUtils.getInstance();
     private ArrayAdapter<String> mProjectsAdapter;
 
     @Override
@@ -64,14 +67,13 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void populateProjectList() {
-
-        List<File> projectFiles = FileUtils.getInstance().getProjectFiles();
-        List<String> projectFileNames = new ArrayList<String>();
+        List<File> projectFiles = mfileutFileUtils.getProjectFiles();
+        final List<String> projectNames = new ArrayList<String>();
         for (File file : projectFiles) {
-            projectFileNames.add(file.getName());
+            projectNames.add(mfileutFileUtils.getProjectName(file.getName()));
         }
         mProjectsAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1,
-                        projectFileNames);
+                projectNames);
 
         ListView listView = (ListView) findViewById(R.id.project_list);
         listView.setAdapter(mProjectsAdapter);
@@ -80,9 +82,18 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
-                Toast.makeText(getApplicationContext(),
-                        "Click ListItem Number " + mProjectsAdapter.getItem(position), Toast.LENGTH_SHORT)
-                        .show();
+                String projectName = mProjectsAdapter.getItem(position);
+                byte[] projectBytes = mfileutFileUtils.loadProjectBytes(projectName);
+                if (projectBytes == null) {
+                    Log.e(TAG, "Unable to load project \"" + projectName + "\"");
+                    Toast.makeText(getApplicationContext(),
+                            "Unable to load project \"" + projectName + "\"", Toast.LENGTH_LONG)
+                            .show();
+                } else {
+                    Intent intent = new Intent(MainActivity.this, ProjectActivity.class);
+                    intent.putExtra(ProjectActivity.EXTRA_PROJECT, projectBytes);
+                    startActivity(intent);
+                }
             }
         });
 
