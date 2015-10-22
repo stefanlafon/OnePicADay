@@ -42,6 +42,13 @@ public class FileUtils {
         return projectName + EXTENSION;
     }
 
+    public void deleteAllProjects() {
+        List<File> projectFiles = getProjectFiles();
+        for (File file : projectFiles) {
+            file.delete();
+        }
+    }
+
     /** Returns the project name from the file name or null if an error occurred. */
     @Nullable
     public String getProjectName(String projectFileName) {

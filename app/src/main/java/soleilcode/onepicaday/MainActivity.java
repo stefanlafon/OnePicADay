@@ -13,11 +13,13 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
-import com.soleilcode.onepicaday.Projects;
+import com.google.protobuf.nano.MessageNano;
+import com.soleilcode.onepicaday.Projects.Project;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class MainActivity extends ActionBarActivity {
 
@@ -37,9 +39,12 @@ public class MainActivity extends ActionBarActivity {
         newProjectButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(MainActivity.this, CreateProjectActivity.class));
+                createNewProject();
             }
         });
+
+        // TODO: Remove the line below.
+        // FileUtils.getInstance().deleteAllProjects();
 
         populateProjectList();
     }
@@ -64,6 +69,17 @@ public class MainActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void createNewProject() {
+        // Create a new Project proto with creation timestamp and id.
+        Project project = new Project();
+        project.id = UUID.randomUUID().toString();
+        project.creationTimeMillis = System.currentTimeMillis();
+        // Launch the ProjectInfoActivity with that new project.
+        Intent intent = new Intent(MainActivity.this, ProjectInfoActivity.class);
+        intent.putExtra(ProjectActivity.EXTRA_PROJECT, MessageNano.toByteArray(project));
+        startActivity(intent);
     }
 
     private void populateProjectList() {

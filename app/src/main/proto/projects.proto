@@ -4,13 +4,17 @@ option java_package = "com.soleilcode.onepicaday";
 
 import "photos.proto";
 
+// Encapsulates a project.
 message Project {
+  // Unique id for this project.
+  optional string id = 1;
+
   // Unix timestamp of the project creation.
-  optional int64 creation_time_millis = 1;
+  optional int64 creation_time_millis = 2;
 
   // Name of the project. Unique id for the project.
-  optional string name = 2;
+  optional string name = 3;
 
   // The list of photos for this project, in increasing order of creation timestamp.
-  optional Photo photos = 3;
+  optional Photo photos = 4;
 }

@@ -1,0 +1,15 @@
+syntax = "proto2";
+
+option java_package = "com.soleilcode.onepicaday";
+
+import "photos.proto";
+
+// Configuration that's necessary for the app to run.
+message AppConfig {
+    // Summary of a project.
+    // Contains enough information to render a project in the list of projects.
+    message ProjectSummary {
+        optional int64 it = 1;
+        optional string name = 2;
+    }
+}
