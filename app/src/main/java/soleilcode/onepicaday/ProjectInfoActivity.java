@@ -20,34 +20,38 @@ public class ProjectInfoActivity extends ActionBarActivity {
 
     public static final String EXTRA_PROJECT = "soleilcode.onepicaday.PROJECT";
     private static final String TAG = "ProjectInfoActivity";
+    private FileUtils mfileutFileUtils;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_project_info);
 
-        Project project = null;
+        mfileutFileUtils = FileUtils.getInstance(this);
+
+        Project tmpProject = null;
         Intent intent = getIntent();
         byte[] bytes = intent.getByteArrayExtra(EXTRA_PROJECT);
         if (bytes != null) {
             try {
-                project = Project.parseFrom(bytes);
+                tmpProject = Project.parseFrom(bytes);
             } catch (InvalidProtocolBufferNanoException e) {
                 Log.e(TAG, "Unable to parse Project proto", e);
             }
         }
-        if (project == null) {
+        if (tmpProject == null) {
             finish();
         }
+
+        final Project project = tmpProject;
 
         // Clicking on this button saves the project.
         Button startProjectButton = (Button) findViewById(R.id.start);
         startProjectButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Project project = createProject();
-                if (project != null) {
-                    FileUtils.getInstance().saveProject(project);
+                if (validateProject(project)) {
+                    mfileutFileUtils.saveProject(project);
                     startActivity(new Intent(ProjectInfoActivity.this, CameraActivity.class));
                 }
             }
@@ -55,18 +59,16 @@ public class ProjectInfoActivity extends ActionBarActivity {
     }
 
     /**
-     * Validates the project's information (name is non-empty etc...) and returns the corresponding
-     * {@link Project}. If the information is invalid, returns {@code null}.
+     * Returns whether the project's information on the screen is valid (name is non-empty etc...).
+     * If valid, then {@code project} is updated with that information.
      */
-    @Nullable
-    private Project createProject() {
-        Project project = new Project();
+    private boolean validateProject(Project project) {
         String name = getName();
         if (name.isEmpty()) {
-            return null;
+            return false;
         }
         project.name = name;
-        return project;
+        return true;
     }
 
     private String getName() {

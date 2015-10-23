@@ -14,6 +14,8 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import com.google.protobuf.nano.MessageNano;
+import com.soleilcode.onepicaday.Configs.AppConfig;
+import com.soleilcode.onepicaday.Configs.AppConfig.ProjectSummary;
 import com.soleilcode.onepicaday.Projects.Project;
 
 import java.io.File;
@@ -25,13 +27,15 @@ public class MainActivity extends ActionBarActivity {
 
     private static final String TAG = "MainActivity";
 
-    private final FileUtils mfileutFileUtils = FileUtils.getInstance();
+    private FileUtils mfileutFileUtils;
     private ArrayAdapter<String> mProjectsAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mfileutFileUtils = FileUtils.getInstance(this);
 
         // Set up Button Click listeners.
         // Button for creating a new project.
@@ -44,7 +48,7 @@ public class MainActivity extends ActionBarActivity {
         });
 
         // TODO: Remove the line below.
-        // FileUtils.getInstance().deleteAllProjects();
+        // FileUtils.getInstance().deleteAllFiles();
 
         populateProjectList();
     }
@@ -83,13 +87,13 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void populateProjectList() {
-        List<File> projectFiles = mfileutFileUtils.getProjectFiles();
-        final List<String> projectNames = new ArrayList<String>();
-        for (File file : projectFiles) {
-            projectNames.add(mfileutFileUtils.getProjectName(file.getName()));
+        AppConfig config = mfileutFileUtils.loadAppConfig();
+        final List<String> projectIds = new ArrayList<String>();
+        for (ProjectSummary summary : config.projects) {
+            projectIds.add(summary.id);
         }
         mProjectsAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1,
-                projectNames);
+                projectIds);
 
         ListView listView = (ListView) findViewById(R.id.project_list);
         listView.setAdapter(mProjectsAdapter);
@@ -98,12 +102,12 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view,
                                     int position, long id) {
-                String projectName = mProjectsAdapter.getItem(position);
-                byte[] projectBytes = mfileutFileUtils.loadProjectBytes(projectName);
+                String projectId = mProjectsAdapter.getItem(position);
+                byte[] projectBytes = mfileutFileUtils.loadProjectBytes(projectId);
                 if (projectBytes == null) {
-                    Log.e(TAG, "Unable to load project \"" + projectName + "\"");
+                    Log.e(TAG, "Unable to load project \"" + projectId + "\"");
                     Toast.makeText(getApplicationContext(),
-                            "Unable to load project \"" + projectName + "\"", Toast.LENGTH_LONG)
+                            "Unable to load project \"" + projectId + "\"", Toast.LENGTH_LONG)
                             .show();
                 } else {
                     Intent intent = new Intent(MainActivity.this, ProjectActivity.class);

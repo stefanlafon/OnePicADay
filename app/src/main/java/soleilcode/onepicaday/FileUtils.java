@@ -1,5 +1,6 @@
 package soleilcode.onepicaday;
 
+import android.content.Context;
 import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -8,6 +9,8 @@ import com.google.protobuf.nano.CodedInputByteBufferNano;
 import com.google.protobuf.nano.CodedOutputByteBufferNano;
 import com.google.protobuf.nano.InvalidProtocolBufferNanoException;
 import com.google.protobuf.nano.MessageNano;
+import com.soleilcode.onepicaday.Configs.AppConfig;
+import com.soleilcode.onepicaday.Configs.AppConfig.ProjectSummary;
 import com.soleilcode.onepicaday.Projects.Project;
 
 import java.io.BufferedInputStream;
@@ -21,75 +24,88 @@ import java.util.List;
 
 /**
  * Utilities for file I/O.
- *
- * // TODO: Do not rely on project name to create the file name. Instead we should be using hashes.
  */
 public class FileUtils {
 
     private static final String TAG = "FileUtils";
-    private static final String DIR_NAME = "OnePicADayDir";
-    private static final String EXTENSION = ".project";
+    private static final String APP_CONFIG_NAME = "app.config";
+    private static final String PROJECT_EXTENSION = ".project";
 
-    private static final FileUtils sInstance = new FileUtils();
+    private static FileUtils sInstance = null;
+    private final Context mApplicationContext;
 
-    public static FileUtils getInstance() {
+    public static FileUtils getInstance(Context context) {
+        if (sInstance != null) {
+            return sInstance;
+        }
+        sInstance = new FileUtils(context.getApplicationContext());
         return sInstance;
     }
 
-    private FileUtils() {}
-
-    public String getProjectFileName(String projectName) {
-        return projectName + EXTENSION;
+    private FileUtils(Context context) {
+        mApplicationContext = context;
     }
 
-    public void deleteAllProjects() {
-        List<File> projectFiles = getProjectFiles();
-        for (File file : projectFiles) {
-            file.delete();
+    public String getProjectFileName(String projectId) {
+        return projectId + PROJECT_EXTENSION;
+    }
+
+    public void deleteAllFiles() {
+        String[] filenames = mApplicationContext.fileList();
+        for (String filename : filenames) {
+            mApplicationContext.deleteFile(filename);
         }
     }
 
-    /** Returns the project name from the file name or null if an error occurred. */
-    @Nullable
-    public String getProjectName(String projectFileName) {
-        if (!projectFileName.endsWith(EXTENSION)) {
-            return null;
-        }
-        return projectFileName.substring(0,projectFileName.length() - EXTENSION.length());
-    }
-
-    /** Returns the list of all project files. */
-    public List<File> getProjectFiles() {
-        File root = getFile("", true);
-        List<File> projectFiles = new ArrayList<File>();
-        if (root != null) {
-            File[] files = root.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (!file.isDirectory() && file.getName().endsWith(EXTENSION)) {
-                        projectFiles.add(file);
-                    }
-                }
+    /**
+     * Loads and returns the app config file.
+     * If the config does not exist or is unparsable, regenerates it.
+     */
+    public synchronized AppConfig loadAppConfig() {
+        AppConfig config = new AppConfig();
+        byte[] bytes = loadBytes(APP_CONFIG_NAME);
+        boolean regenerateConfig = false;
+        if (bytes == null) {
+            regenerateConfig = true;
+        } else {
+            try {
+                config = MessageNano.mergeFrom(config, bytes);
+            } catch (InvalidProtocolBufferNanoException e) {
+                Log.e(TAG, "Unable to decode app config", e);
+                regenerateConfig = true;
             }
         }
-        return projectFiles;
+
+        if (regenerateConfig) {
+            // Re-create a fresh new config.
+            config = new AppConfig();
+            saveConfig(config);
+        }
+        return config;
     }
 
-    /** Loads a project's {@link Project} proto in serialized form. */
+    /** Saves the app config. Returns true on success. */
+    public synchronized boolean saveConfig(AppConfig config) {
+        return saveBytes(MessageNano.toByteArray(config), APP_CONFIG_NAME);
+    }
+
+    /**
+     * Loads a project's {@link Project} proto in serialized form
+     * or {@code null} if it can't be found.
+     */
     @Nullable
-    public byte[] loadProjectBytes(String projectName) {
-        File file = getFile(getProjectFileName(projectName), false);
-        if (file == null){
+    public synchronized byte[] loadProjectBytes(String projectId) {
+        byte[] bytes = loadBytes(getProjectFileName(projectId));
+        if (bytes == null){
             Log.e(TAG, "Error loading project file");
-            return null;
         }
-        return loadBytes(file);
+        return bytes;
     }
 
     /** Same as {@link #loadProjectBytes(String)}, but also deserializes the proto. */
     @Nullable
-    public Project loadProject(String projectName) {
-        byte[] bytes = loadProjectBytes(projectName);
+    public synchronized Project loadProject(String projectId) {
+        byte[] bytes = loadProjectBytes(projectId);
         if (bytes == null) {
             return null;
         }
@@ -102,24 +118,42 @@ public class FileUtils {
         return project;
     }
 
-    /** Saves a project. */
-    public void saveProject(Project project) {
-        File file = getFile(getProjectFileName(project.name), true);
-        if (file == null){
-            Log.e(TAG, "Error creating project file");
-            return;
+    /** Saves a project. Returns true on success. */
+    public synchronized boolean saveProject(Project project) {
+        if (!saveBytes(MessageNano.toByteArray(project), getProjectFileName(project.id))) {
+            // Unable to save the project.
+            return false;
         }
-        saveBytes(MessageNano.toByteArray(project), file);
+        // Obtain the latest app config.
+        AppConfig config = loadAppConfig();
+        // Check if the project is already in the config. If not, add it and save the config.
+        boolean hasProject = false;
+        for (ProjectSummary summary : config.projects) {
+            if (summary.id.equals(project.id)) {
+                hasProject = true;
+                break;
+            }
+        }
+        if (hasProject) {
+            return true;  // we're done
+        }
+        ProjectSummary[] summaries = new ProjectSummary[config.projects.length + 1];
+        System.arraycopy(config.projects, 0, summaries, 0, config.projects.length);
+        ProjectSummary summary = new ProjectSummary();
+        summary.id = project.id;
+        summary.name = project.name;
+        summaries[config.projects.length] = summary;
+        config.projects = summaries;
+        return saveConfig(config);
     }
 
     @Nullable
-    private byte[] loadBytes(File file) {
-        int size = (int) file.length();
+    private byte[] loadBytes(String filename)  {
+        int size = (int) mApplicationContext.getFileStreamPath(filename).length();
         byte[] bytes = new byte[size];
         try {
-            BufferedInputStream buf = new BufferedInputStream(new FileInputStream(file));
-            buf.read(bytes, 0, bytes.length);
-            buf.close();
+            FileInputStream inputStream = mApplicationContext.openFileInput(filename);
+            inputStream.read(bytes, 0, bytes.length);
         } catch (FileNotFoundException e) {
             Log.e(TAG, "File not found", e);
             return null;
@@ -130,46 +164,17 @@ public class FileUtils {
         return bytes;
     }
 
-    private void saveBytes(byte[] data, File file) {
+    /** Saves bytes. Returns true on success. */
+    private boolean saveBytes(byte[] bytes, String filename) {
+        FileOutputStream fos;
         try {
-            FileOutputStream fos = new FileOutputStream(file);
-            fos.write(data);
+            fos = mApplicationContext.openFileOutput(filename, Context.MODE_PRIVATE);
+            fos.write(bytes);
             fos.close();
-            Log.d(TAG, "File saved to: " + file.getPath());
-        } catch (FileNotFoundException e) {
-            Log.e(TAG, "File not found", e);
         } catch (IOException e) {
-            Log.e(TAG, "Error accessing file", e);
+            Log.e(TAG, "Error writing file", e);
+            return false;
         }
-    }
-
-    /** Creates a {@link File} where to save or load data. */
-    @Nullable
-    private File getFile(String filename, boolean createDirIfNeeded) {
-        if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-            Log.e(TAG, "External storage is not mounted: " + Environment.getExternalStorageState());
-            return null;
-        }
-
-        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES), DIR_NAME);
-
-        // Create the storage directory if it does not exist
-        if (!mediaStorageDir.exists()) {
-            if (!createDirIfNeeded) {
-                return null;
-            }
-            if (!mediaStorageDir.mkdirs()) {
-                Log.e(TAG, "failed to create directory");
-                return null;
-            }
-        }
-
-        return new File(mediaStorageDir.getPath() + File.separator + filename);
-    }
-
-    /** Returns the directory path to the image files for a given project. */
-    private String getProjectImagePath(String projectName) {
-        return projectName + File.separator;
+        return true;
     }
 }
