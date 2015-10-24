@@ -1,11 +1,14 @@
 package soleilcode.onepicaday;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.google.protobuf.nano.InvalidProtocolBufferNanoException;
@@ -14,8 +17,10 @@ import com.soleilcode.onepicaday.Projects.Project;
 
 public class ProjectActivity extends ActionBarActivity {
 
-    private static final String TAG = "ProjectActivity";
     public static final String EXTRA_PROJECT = "soleilcode.onepicaday.PROJECT";
+
+    private static final String TAG = "ProjectActivity";
+    private static final int SELECT_PICTURE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,10 +37,26 @@ public class ProjectActivity extends ActionBarActivity {
                 Log.e(TAG, "Unable to parse Project proto", e);
             }
         }
-        if (project != null) {
-            TextView projectName = (TextView) findViewById(R.id.project_name);
-            projectName.setText(project.name);
+        if (project == null) {
+            finish();
         }
+        TextView projectName = (TextView) findViewById(R.id.project_name);
+        projectName.setText(project.name);
+        Button addPhotoCameraButton = (Button) findViewById(R.id.add_photo_camera);
+        addPhotoCameraButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // TODO: Launch camera flow.
+            }
+        });
+        Button addExistingPhotoButton = (Button) findViewById(R.id.add_existing_photo);
+        addExistingPhotoButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                pickExistingPhoto();
+            }
+        });
+
     }
 
     @Override
@@ -58,5 +79,25 @@ public class ProjectActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void pickExistingPhoto() {
+        Intent intent = new Intent();
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent,"Select Picture"), SELECT_PICTURE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            switch(requestCode){
+                case SELECT_PICTURE:
+                    Uri selectedImageUri = data.getData();
+
+                    break;
+            }
+        }
     }
 }
