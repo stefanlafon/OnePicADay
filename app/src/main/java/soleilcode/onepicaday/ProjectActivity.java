@@ -46,7 +46,8 @@ public class ProjectActivity extends ActionBarActivity {
         addPhotoCameraButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // TODO: Launch camera flow.
+                startActivity(new Intent(ProjectActivity.this, CameraActivity.class));
+                // TODO: Really get the result.
             }
         });
         Button addExistingPhotoButton = (Button) findViewById(R.id.add_existing_photo);
