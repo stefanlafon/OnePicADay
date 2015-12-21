@@ -1,7 +1,11 @@
 package soleilcode.onepicaday;
 
+import android.content.ClipData;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
+import android.os.Parcelable;
+import android.provider.MediaStore;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -14,6 +18,9 @@ import android.widget.TextView;
 import com.google.protobuf.nano.InvalidProtocolBufferNanoException;
 import com.google.protobuf.nano.MessageNano;
 import com.soleilcode.onepicaday.Projects.Project;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ProjectActivity extends ActionBarActivity {
 
@@ -86,7 +93,8 @@ public class ProjectActivity extends ActionBarActivity {
         Intent intent = new Intent();
         intent.setType("image/*");
         intent.setAction(Intent.ACTION_GET_CONTENT);
-        startActivityForResult(Intent.createChooser(intent,"Select Picture"), SELECT_PICTURE);
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        startActivityForResult(Intent.createChooser(intent, "Select Picture"), SELECT_PICTURE);
     }
 
     @Override
@@ -95,10 +103,23 @@ public class ProjectActivity extends ActionBarActivity {
         if (resultCode == RESULT_OK) {
             switch(requestCode){
                 case SELECT_PICTURE:
-                    Uri selectedImageUri = data.getData();
-
+                    List<Uri> imageUris = new ArrayList<Uri>();
+                    if (data.getData() != null) {
+                        imageUris.add(data.getData());
+                    } else if (data.getClipData() != null) {
+                        Log.e(TAG, "MULTIPLE");
+                        ClipData mClipData = data.getClipData();
+                        for (int i = 0; i < mClipData.getItemCount(); i++) {
+                            ClipData.Item item = mClipData.getItemAt(i);
+                            imageUris.add(item.getUri());
+                        }
+                    }
+                    for (Uri uri : imageUris) {
+                        Log.e(TAG, "Path:" + uri.getPath());
+                    }
                     break;
             }
         }
     }
+
 }
